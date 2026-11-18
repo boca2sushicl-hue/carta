@@ -1,0 +1,79 @@
+<!DOCTYPE html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Admin · Carta</title>
+<style>
+body{font:15px/1.4 system-ui,sans-serif;margin:0;background:#f8f0de;color:#2d2218;padding:12px 12px 100px}
+h1{font-size:20px;margin:6px 0 10px}
+.box{background:#fffcf6;border:1px solid #d9c7a4;border-radius:14px;padding:12px;margin-bottom:12px}
+.box h2{font-size:17px;margin:0 0 8px;color:#8f2c1d}
+label{display:block;font-size:12px;font-weight:700;color:#7a6850;margin-top:8px}
+input,textarea{width:100%;padding:9px;border:1px solid #d9c7a4;border-radius:9px;font:inherit;font-size:15px;background:#fff;margin-top:3px;box-sizing:border-box}
+.r{display:flex;gap:8px;align-items:flex-end}.r>div{flex:1}
+.ck{display:flex;align-items:center;gap:6px;font-size:14px}.ck input{width:auto;margin:0}
+button{padding:10px 12px;border-radius:10px;border:0;background:#c53a28;color:#fff;font-weight:700;font-size:14px}
+button.g{background:#e9dcc2;color:#2d2218;width:100%}button.d{background:#fff;color:#c53a28;border:1px solid #c53a28}
+#save{position:fixed;left:12px;right:12px;bottom:12px;padding:15px;font-size:16px;box-shadow:0 10px 20px -8px rgba(197,58,40,.6)}
+#msg{font-size:13px;color:#7a6850;margin:6px 0}
+</style></head><body>
+<h1>Editar carta</h1>
+<div class="box">
+ <label>Clave de administrador<input id="clave" type="password"></label>
+ <label>WhatsApp del local (56 + número, solo dígitos)<input id="wa"></label>
+</div>
+<div id="cats"></div>
+<button class="g" id="nuevaCat">+ Nueva categoría</button>
+<div id="msg"></div>
+<button id="save">Guardar cambios</button>
+<script>
+const API_URL='PEGAR_URL_DE_APPS_SCRIPT';
+let M=null;
+const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const $=id=>document.getElementById(id);
+
+async function cargar(){
+  try{const j=await (await fetch(API_URL)).json(); if(j.categorias){M=j;return}}catch(e){}
+  // Primera vez (la hoja aún está vacía): toma el menú del index.html
+  const t=await (await fetch('index.html')).text();
+  M=new Function('return '+t.match(/const MENU0=(\{[\s\S]*?\]\});/)[1])();
+}
+
+function pintar(){
+  $('wa').value=M.config.whatsapp;
+  $('cats').innerHTML=M.categorias.map((c,ci)=>`
+  <div class="box"><h2>${esc(c.ico)} ${esc(c.nombre)}</h2>
+  ${c.items.map((i,ii)=>`<div class="box" style="background:#fff">
+    <div class="r"><div><label>Nombre<input data-k="n" data-c="${ci}" data-i="${ii}" value="${esc(i.n)}"></label></div>
+    <div style="flex:0 0 105px"><label>Precio<input type="number" data-k="p" data-c="${ci}" data-i="${ii}" value="${i.p}"></label></div></div>
+    <label>Ingredientes (separados por coma)<input data-k="ing" data-c="${ci}" data-i="${ii}" value="${esc(i.ing.join(', '))}"></label>
+    <label>Descripción<textarea rows="2" data-k="d" data-c="${ci}" data-i="${ii}">${esc(i.d)}</textarea></label>
+    <label>Foto (enlace de Google Drive, opcional)<input data-k="img" data-c="${ci}" data-i="${ii}" value="${esc(i.img)}"></label>
+    <div class="r" style="margin-top:10px;align-items:center">
+      <label class="ck"><input type="checkbox" data-k="ag" data-c="${ci}" data-i="${ii}" ${i.ag?'checked':''}> Agotado</label>
+      <span style="flex:1"></span>
+      <button class="d" data-del="${ci}-${ii}">Eliminar</button></div>
+  </div>`).join('')}
+  <button class="g" style="margin-top:10px" data-add="${ci}">+ Producto en ${esc(c.nombre)}</button></div>`).join('');
+}
+
+$('cats').addEventListener('input',e=>{
+  const t=e.target; if(!t.dataset.k)return;
+  const i=M.categorias[t.dataset.c].items[t.dataset.i], k=t.dataset.k;
+  i[k]=k=='p'?Number(t.value):k=='ing'?t.value.split(',').map(s=>s.trim()).filter(Boolean):k=='ag'?t.checked:t.value;
+});
+$('cats').addEventListener('click',e=>{
+  const b=e.target.closest('button'); if(!b)return;
+  if(b.dataset.add!==undefined){M.categorias[b.dataset.add].items.push({id:'n'+Date.now(),n:'Nuevo producto',p:0,ing:[],d:'',img:'',ag:false});pintar()}
+  if(b.dataset.del!==undefined&&confirm('¿Eliminar este producto?')){const[c,i]=b.dataset.del.split('-');M.categorias[c].items.splice(i,1);pintar()}
+});
+$('nuevaCat').onclick=()=>{const n=prompt('Nombre de la categoría');if(!n)return;M.categorias.push({id:'c'+Date.now(),nombre:n,ico:'🍽️',items:[]});pintar()};
+$('wa').oninput=e=>M.config.whatsapp=e.target.value.replace(/\D/g,'');
+
+$('save').onclick=async()=>{
+  const m=$('msg');m.textContent='Guardando…';
+  try{
+    const r=await fetch(API_URL,{method:'POST',body:JSON.stringify({clave:$('clave').value,menu:M})});
+    const j=await r.json();
+    m.textContent=j.ok?'✓ Guardado. Los clientes ya ven los cambios.':'Error: '+j.error;
+  }catch(e){m.textContent='No se pudo guardar. Revisa la URL de API_URL.'}
+};
+
+cargar().then(pintar).catch(e=>$('msg').textContent='No se pudo cargar el menú: '+e.message);
+</script></body></html>
