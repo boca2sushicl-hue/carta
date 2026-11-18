@@ -16,6 +16,7 @@ button.g{background:#e9dcc2;color:#2d2218;width:100%}button.d{background:#fff;co
 <h1>Editar carta</h1>
 <div class="box">
  <label>Clave de administrador<input id="clave" type="password"></label>
+ <label>Nombre del local<input id="nom"></label>
  <label>WhatsApp del local (56 + número, solo dígitos)<input id="wa"></label>
 </div>
 <div id="cats"></div>
@@ -37,6 +38,7 @@ async function cargar(){
 
 function pintar(){
   $('wa').value=M.config.whatsapp;
+  $('nom').value=M.config.nombre||'';
   $('cats').innerHTML=M.categorias.map((c,ci)=>`
   <div class="box"><h2>${esc(c.ico)} ${esc(c.nombre)}</h2>
   ${c.items.map((i,ii)=>`<div class="box" style="background:#fff">
@@ -65,6 +67,7 @@ $('cats').addEventListener('click',e=>{
 });
 $('nuevaCat').onclick=()=>{const n=prompt('Nombre de la categoría');if(!n)return;M.categorias.push({id:'c'+Date.now(),nombre:n,ico:'🍽️',items:[]});pintar()};
 $('wa').oninput=e=>M.config.whatsapp=e.target.value.replace(/\D/g,'');
+$('nom').oninput=e=>M.config.nombre=e.target.value;
 
 $('save').onclick=async()=>{
   const m=$('msg');m.textContent='Guardando…';
