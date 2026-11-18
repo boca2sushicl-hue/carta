@@ -82,10 +82,12 @@ footer{text-align:center;color:var(--mute);font-size:12px;padding:16px}
 .seg button.on{background:#3a342e;color:var(--ink);box-shadow:0 2px 8px -2px rgba(0,0,0,.2)}
 .tot{display:flex;justify-content:space-between;align-items:baseline;margin:16px 0 12px}.tot b{font-size:24px;color:var(--red)}
 .fin{text-align:center;padding:10px 0}.fin .mon{margin:0 auto 12px}.fin p{margin:6px 0 16px}.fin .go{margin-bottom:8px}.fin button{padding:10px;color:var(--mute);font-weight:600}
-.mx{position:fixed;right:6px;bottom:96px;height:118px;width:auto;z-index:28;pointer-events:none;transform:translateX(72%);transition:transform .6s var(--ez);filter:drop-shadow(0 8px 10px rgba(0,0,0,.5))}
+.mx{position:fixed;right:8px;bottom:96px;height:96px;width:auto;z-index:28;pointer-events:none;transform:translateX(130%);transition:transform .6s var(--ez);filter:drop-shadow(0 8px 10px rgba(0,0,0,.5))}
 .mx.in{transform:none;animation:idle 1.8s ease-in-out infinite}
 .mx.in.quieta{animation:none}
 .mas{display:block;height:170px;width:auto;margin:0 auto 10px;animation:bob 2.6s ease-in-out infinite}
+@keyframes manejar{0%,100%{transform:translateY(0) rotate(0)}25%{transform:translateY(-4px) rotate(-1.5deg)}50%{transform:translateY(0) rotate(0)}75%{transform:translateY(-4px) rotate(1.5deg)}}
+.mas.moto{animation:manejar .7s ease-in-out infinite}
 @keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
 @keyframes idle{0%,100%{transform:translateY(0)}50%{transform:translateY(-5px)}}
 @keyframes kb{0%{transform:scale(1.2) translate(-4%,3%)}100%{transform:scale(1) translate(0,0)}}
@@ -129,7 +131,7 @@ footer{text-align:center;color:var(--mute);font-size:12px;padding:16px}
 <div class="tot"><span>Total</span><b id="tt"></b></div>
 <button class="go">Enviar pedido por WhatsApp</button>
 </form></div>
-<div id="s2" class="fin" hidden><img class="mas" src="scooter.gif" alt=""><h2>Pedido listo</h2><p>Tu código de orden es <b id="oc"></b>.<br>Envía el mensaje por WhatsApp para confirmarlo.</p><a class="go" id="wl" target="_blank" rel="noopener">Abrir WhatsApp</a><button id="nw">Volver a la carta</button></div>
+<div id="s2" class="fin" hidden><img class="mas moto" src="m_moto.png" alt=""><h2>Pedido listo</h2><p>Tu código de orden es <b id="oc"></b>.<br>Envía el mensaje por WhatsApp para confirmarlo.</p><a class="go" id="wl" target="_blank" rel="noopener">Abrir WhatsApp</a><button id="nw">Volver a la carta</button></div>
 </section>
 </div>
 
@@ -529,7 +531,7 @@ document.querySelectorAll('.sec').forEach(s=>io.observe(s));
 nav.onclick=e=>{const a=e.target.closest('a');if(!a)return;e.preventDefault();busy=1;setOn(a.dataset.c);clearTimeout(tm);tm=setTimeout(()=>busy=0,900);document.getElementById(a.dataset.c).scrollIntoView({behavior:'smooth'})};
 setOn(MENU.categorias[0].id);
 upd();
-setTimeout(()=>{if(!cnt())mx.classList.add('in')},900);
+setTimeout(()=>mx.classList.add('in'),900);
 })();
 </script>
 </body>
