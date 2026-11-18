@@ -486,11 +486,15 @@ function reaccion(tipo){
 
 /* ===== Mascota viva: caricias, toques, cosquillas, mareo y sueño ===== */
 const burbuja=document.getElementById('burbuja');
+let vozJa=null;
+function elegirVoz(){try{const vs=speechSynthesis.getVoices();vozJa=vs.find(v=>/^ja/i.test(v.lang)&&/female|mujer|google/i.test(v.name))||vs.find(v=>/^ja/i.test(v.lang))||null}catch(e){}}
+elegirVoz(); try{speechSynthesis.onvoiceschanged=elegirVoz}catch(e){}
+let dragging=false, taps=[];
 let ultimo=Date.now(), sleeping=false, hold=null, moved=0, lastX=0, lastY=0, t0=0, shakeAcc=0, lastT=0, _cari=0;
 function decir(jp,es,ms=1600){
   burbuja.textContent=jp+'  '+es; burbuja.classList.add('on');
   clearTimeout(decir._t); decir._t=setTimeout(()=>burbuja.classList.remove('on'),ms);
-  try{const u=new SpeechSynthesisUtterance(jp);u.lang='ja-JP';u.rate=1.15;u.pitch=1.4;speechSynthesis.cancel();speechSynthesis.speak(u)}catch(e){}
+  try{const u=new SpeechSynthesisUtterance(jp);u.lang='ja-JP';if(vozJa)u.voice=vozJa;u.rate=1.25;u.pitch=1.9;speechSynthesis.cancel();speechSynthesis.speak(u)}catch(e){}
 }
 function corazon(){
   const h=document.createElement('span'); h.className='cor'; h.textContent='♥';
@@ -500,28 +504,32 @@ function corazon(){
 }
 function despertar(){ ultimo=Date.now(); if(sleeping){sleeping=false; temp('sorpresa',1000); decir('ふぁ…？','¡Ah! Me despertaste')} }
 function caricia(){ if(Date.now()-_cari<350)return; _cari=Date.now(); temp('feliz',1400); corazon(); decir('えへへ','¡Ehehe!',1200) }
-function piquito(){ temp('sorpresa',1200); saltar(); decir('きゃっ！','¡Kyaa!') }
+function piquito(){ temp('sorpresa',1200); decir('なに？','¿Mmm? ¿Qué pasa?') }
+function enojarse(){ temp('enojada',2600); tropezar(); decir('もう！やめて！','¡Ya! ¡Basta!',2200); taps=[] }
 function cosquillas(){ temp('risa',2000); mx.animate([{transform:'translateX(-5px)'},{transform:'translateX(5px)'}].concat([{transform:'translateX(-5px)'},{transform:'translateX(5px)'}],[{transform:'translateX(-5px)'},{transform:'translateX(5px)'}],[{transform:'translateX(0)'}]),{duration:700}); decir('くすぐったい！','¡Me hace cosquillas!',1800) }
 function mareo(){ temp('humo',1800); tropezar(); decir('もうやめて！','¡Ya basta!') }
 mx.addEventListener('pointerdown',e=>{
   despertar(); t0=Date.now(); lastX=e.clientX; lastY=e.clientY; moved=0; shakeAcc=0; lastT=Date.now();
   clearTimeout(hold); hold=setTimeout(()=>{ if(moved<12){ cosquillas(); hold=null } },900);
-  mx.setPointerCapture(e.pointerId);
+  dragging=true; mx.setPointerCapture(e.pointerId);
 });
 mx.addEventListener('pointermove',e=>{
-  if(!(e.buttons&1))return;
+  if(!dragging)return;
   ultimo=Date.now();
   const dx=e.clientX-lastX, dy=e.clientY-lastY, now=Date.now();
   moved+=Math.hypot(dx,dy);
   const r=mx.getBoundingClientRect(), enCabeza=(e.clientY-r.top)<r.height*.45;
-  if(Math.abs(dx)>8 && enCabeza && moved>30) caricia();
+  if(Math.abs(dx)>4 && moved>18) caricia();
   if(Math.abs(dx)>Math.abs(dy)) shakeAcc+=Math.abs(dx);
   if(now-lastT>700){ shakeAcc=0; lastT=now }
   if(shakeAcc>300){ mareo(); shakeAcc=0 }
   lastX=e.clientX; lastY=e.clientY;
 });
-mx.addEventListener('pointerup',()=>{ clearTimeout(hold); ultimo=Date.now(); if(Date.now()-t0<300 && moved<8) piquito() });
-mx.addEventListener('pointercancel',()=>clearTimeout(hold));
+mx.addEventListener('pointerup',()=>{
+  dragging=false; clearTimeout(hold); ultimo=Date.now();
+  if(Date.now()-t0<300 && moved<8){ const now=Date.now(); taps=taps.filter(x=>now-x<5000); taps.push(now); taps.length>=4?enojarse():piquito() }
+});
+mx.addEventListener('pointercancel',()=>{dragging=false;clearTimeout(hold)});
 /* Se duerme si nadie la toca por 15 segundos */
 setInterval(()=>{
   if(!mx.classList.contains('in'))return;
