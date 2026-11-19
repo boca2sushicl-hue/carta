@@ -469,7 +469,7 @@ function celebrar(){
  navigator.vibrate&&navigator.vibrate([12,40,12]);
 }
 /* Reacciones de la mascota: cada acción cambia su pose y su movimiento */
-const POSES={idle:0,alegre:[10,16,0,5],emocion:[7,17,30],guino:[32,20,10],saluda:[16,28,34],moto:[17,7,30],bolsa:[23,12,28],sorpresa:[21,2,30],feliz:[8],risa:[8],puchero:[9,15,13],cancelar:[15],sueno:25,abrazo:[14,24],enojada:[26,9,15],humo:[26,15,9]};
+const POSES={idle:0,alegre:[10,16],emocion:[7,17],guino:[32,20],saluda:[16,28],moto:[17,30],bolsa:[23,12],sorpresa:[21,2],feliz:[8],risa:[8],puchero:[15],cancelar:[15],sueno:25,abrazo:[14],enojada:[26],humo:[26,15]};
 const mx=document.getElementById('mx');
 let _pose=null;
 const pose=p=>{let v=POSES[p]; if(Array.isArray(v)) v=v[Math.floor(Math.random()*v.length)]; const i=v??(typeof p==='number'?p:0); if(_pose===i)return; _pose=i; mx.style.backgroundPosition=`${-(i%7)*160}px ${-Math.floor(i/7)*160}px`};
@@ -491,12 +491,34 @@ function reaccion(tipo){
 
 /* ===== Mascota viva: caricias, toques, cosquillas, mareo y sueño ===== */
 const burbuja=document.getElementById('burbuja');
+function posBurbuja(){ const r=mx.getBoundingClientRect(); const w=burbuja.offsetWidth, h=burbuja.offsetHeight;
+  let x=r.left+r.width/2-w/2; x=Math.max(8,Math.min(innerWidth-w-8,x)); let y=r.top-h-8; if(y<8) y=r.bottom+8;
+  burbuja.style.left=x+'px'; burbuja.style.top=y+'px'; burbuja.style.right='auto'; burbuja.style.bottom='auto' }
 let vozJa=null;
 function elegirVoz(){try{const vs=speechSynthesis.getVoices();vozJa=vs.find(v=>/^ja/i.test(v.lang)&&/female|mujer|google/i.test(v.name))||vs.find(v=>/^ja/i.test(v.lang))||null}catch(e){}}
 elegirVoz(); try{speechSynthesis.onvoiceschanged=elegirVoz}catch(e){}
 let dragging=false, taps=[];
 let ultimo=Date.now(), sleeping=false, hold=null, moved=0, lastX=0, lastY=0, t0=0, shakeAcc=0, lastT=0, _cari=0;
 let actx=null;
+/* Risa: pequeños "ja" con aire y voz, más natural que un tono de robot */
+function risa(n=4,base=800){
+  const c=audioCtx(); if(!c)return; let tt=c.currentTime;
+  for(let i=0;i<n;i++){
+    const dur=0.13+Math.random()*0.05, f=base*(0.92+Math.random()*0.16);
+    const o=c.createOscillator(), g=c.createGain(), vib=c.createOscillator(), vg=c.createGain();
+    o.type='triangle'; o.frequency.setValueAtTime(f,tt); o.frequency.linearRampToValueAtTime(f*0.8,tt+dur);
+    vib.frequency.value=6; vg.gain.value=10; vib.connect(vg).connect(o.frequency); vib.start(tt); vib.stop(tt+dur+0.05);
+    g.gain.setValueAtTime(0,tt); g.gain.linearRampToValueAtTime(0.2,tt+0.02); g.gain.exponentialRampToValueAtTime(0.001,tt+dur);
+    o.connect(g).connect(c.destination); o.start(tt); o.stop(tt+dur+0.02);
+    const buf=c.createBuffer(1,Math.floor(c.sampleRate*dur),c.sampleRate), d=buf.getChannelData(0);
+    for(let k=0;k<d.length;k++) d[k]=(Math.random()*2-1)*(1-k/d.length);
+    const src=c.createBufferSource(); src.buffer=buf; const bp=c.createBiquadFilter(); bp.type='bandpass'; bp.frequency.value=1500; bp.Q.value=0.9;
+    const ng=c.createGain(); ng.gain.value=0.07; src.connect(bp).connect(ng).connect(c.destination); src.start(tt);
+    tt+=dur+0.07+Math.random()*0.05;
+  }
+  const id=setInterval(()=>mx.animate([{transform:'scale(1,1)'},{transform:'scale(1.04,.96)'},{transform:'scale(1,1)'}],{duration:200}),230);
+  setTimeout(()=>clearInterval(id),(tt-c.currentTime)*1000+100);
+}
 function audioCtx(){ if(!actx){try{actx=new (window.AudioContext||window.webkitAudioContext)()}catch(e){return null}} if(actx.state==='suspended')actx.resume(); return actx }
 /* Balbuceo sintetizado (sin archivos): tonos cortos y variados como Talking Tom */
 function babble(ms=1000,tono={base:600,v:1}){
@@ -514,9 +536,9 @@ function babble(ms=1000,tono={base:600,v:1}){
 }
 /* Texto de expresión en español; sin voz en japonés */
 function decir(jp,es,ms=1600,tono){
-  burbuja.textContent=es; burbuja.classList.add('on');
+  burbuja.textContent=es; posBurbuja(); burbuja.classList.add('on');
   clearTimeout(decir._t); decir._t=setTimeout(()=>burbuja.classList.remove('on'),ms);
-  babble(Math.min(ms,1200),tono||{base:600,v:1});
+  if(tono&&tono.risa) risa(tono.n,tono.base); else babble(Math.min(ms,1200),tono||{base:600,v:1});
 }
 function corazon(){
   const h=document.createElement('span'); h.className='cor'; h.textContent='♥';
@@ -525,63 +547,81 @@ function corazon(){
   document.body.appendChild(h); setTimeout(()=>h.remove(),1100);
 }
 function despertar(){ ultimo=Date.now(); if(sleeping){sleeping=false; temp('sorpresa',1000); decir('','¿Eh?',1000)} }
-function caricia(){ if(Date.now()-_cari<350)return; _cari=Date.now(); temp('feliz',1400); corazon(); decir('','¡Jiji~!',1200,{base:1100,v:0.4}) }
-function piquito(){ temp('sorpresa',1200); decir('','¿Mmm?',1000) }
+function caricia(){ if(Date.now()-_cari<350)return; _cari=Date.now(); temp('feliz',1400); corazon(); decir('','¡Jiji~!',1200,{risa:true,n:3,base:880}) }
+function piquito(){ temp('sorpresa',1200); decir('','Hmph',1000) }
+/* Fastidiar por escalones: cada toque seguido sube un nivel */
+function fastidiar(n){
+  if(n<=1){ temp('enojada',1800); decir('','Hmph 💢',1500,{base:260,v:0.3}); return }
+  if(n===2){ temp('enojada',2000); decir('','¡Ya, ya~!',1600,{base:300,v:0.4}); return }
+  if(n===3){ temp('enojada',2000); decir('','¡Oye, suave!',1800,{base:320,v:0.4}); return }
+  if(n===4){ temp('enojada',2200); decir('','¿Otra vez?',1800,{base:280,v:0.4}); return }
+  enojarse();
+}
 function enojarse(){ temp('enojada',2600); tropezar(); decir('','¡Basta!',2200,{base:170,v:0.4}); taps=[] }
-function cosquillas(){ temp('risa',2000); mx.animate([{transform:'translateX(-5px)'},{transform:'translateX(5px)'}].concat([{transform:'translateX(-5px)'},{transform:'translateX(5px)'}],[{transform:'translateX(-5px)'},{transform:'translateX(5px)'}],[{transform:'translateX(0)'}]),{duration:700}); decir('','¡Jajaja!',1800,{base:1000,v:0.5}) }
+let _fall=null;
+function cosquillas(){
+  temp('risa',3800);
+  _fall=mx.animate([{transform:'translateY(0) rotate(0)'},{transform:'translateY(20px) rotate(-35deg)'},{transform:'translateY(45px) rotate(-80deg)'}],{duration:700,fill:'forwards',easing:'ease-in'});
+  decir('','¡Basta! ¡Jajaja!',3000,{risa:true,n:10,base:820});
+  setTimeout(()=>{ if(_fall){ _fall.cancel(); _fall=null } mx.animate([{transform:'translateY(45px) rotate(-80deg)'},{transform:'translateY(0) rotate(0)'}],{duration:600}) },3300);
+}
 function mareo(){ temp('humo',1800); tropezar(); decir('','¡Ay!',1400) }
-let startRel=0, modo=null, offX=0, offY=0;
-function moverA(x,y){ const w=mx.offsetWidth,h=mx.offsetHeight; x=Math.max(0,Math.min(innerWidth-w,x)); y=Math.max(0,Math.min(innerHeight-h,y)); mx.style.left=x+'px'; mx.style.top=y+'px'; mx.style.right='auto'; mx.style.bottom='auto' }
+let startRel=0, modo=null, offX=0, offY=0, signChanges=[], lastSign=0, _cosq=0;
+function moverA(x,y){ const w=mx.offsetWidth,h=mx.offsetHeight; x=Math.max(0,Math.min(innerWidth-w,x)); y=Math.max(0,Math.min(innerHeight-h,y)); mx.style.left=x+'px'; mx.style.top=y+'px'; mx.style.right='auto'; mx.style.bottom='auto'; if(typeof posBurbuja==='function') posBurbuja() }
 function guardarPos(){ try{localStorage.setItem('mxpos',JSON.stringify({x:parseFloat(mx.style.left),y:parseFloat(mx.style.top)}))}catch(e){} }
 try{const p=JSON.parse(localStorage.getItem('mxpos')); if(p&&p.x!=null) moverA(p.x,p.y)}catch(e){}
 mx.addEventListener('pointerdown',e=>{
-  despertar(); t0=Date.now(); lastX=e.clientX; lastY=e.clientY; moved=0; shakeAcc=0; lastT=Date.now(); modo=null;
+  despertar(); t0=Date.now(); lastX=e.clientX; lastY=e.clientY; moved=0; shakeAcc=0; lastT=Date.now(); modo=null; signChanges=[]; lastSign=0;
+  mx.animate([{transform:'scale(1,1)'},{transform:'scale(1.07,.93)'},{transform:'scale(1,1)'}],{duration:180});
   const r=mx.getBoundingClientRect(); startRel=(e.clientY-r.top)/r.height; offX=e.clientX-r.left; offY=e.clientY-r.top;
-  dragging=true; clearTimeout(hold);
-  hold=setTimeout(()=>{ if(!modo && moved<12){ cosquillas(); hold=null } },900);
-  mx.setPointerCapture(e.pointerId);
+  dragging=true; mx.setPointerCapture(e.pointerId);
 });
 mx.addEventListener('pointermove',e=>{
   if(!dragging)return; ultimo=Date.now();
   const dx=e.clientX-lastX, dy=e.clientY-lastY, now=Date.now();
   moved+=Math.hypot(dx,dy);
-  if(!modo && moved>12) modo = startRel<0.45 ? 'caricia' : 'mover';
-  if(modo==='mover'){ clearTimeout(hold); moverA(e.clientX-offX, e.clientY-offY) }
+  if(!modo && moved>12) modo = (now-t0>400) ? 'mover' : 'caricia';
+  if(modo==='mover'){ moverA(e.clientX-offX, e.clientY-offY) }
   if(modo==='caricia'){
-    if(Math.abs(dx)>4) caricia();
-    if(Math.abs(dx)>Math.abs(dy)) shakeAcc+=Math.abs(dx);
-    if(now-lastT>700){ shakeAcc=0; lastT=now }
-    if(shakeAcc>300){ mareo(); shakeAcc=0 }
+    if(Math.abs(dx)>3){ const s=Math.sign(dx); if(s!==lastSign){ signChanges.push(now); lastSign=s } }
+    signChanges=signChanges.filter(x=>now-x<900);
+    if(signChanges.length>=5 && now-_cosq>4000){ _cosq=now; signChanges=[]; modo='cosq'; cosquillas() }
+    else {
+      if(Math.abs(dx)>4) caricia();
+      if(Math.abs(dx)>Math.abs(dy)) shakeAcc+=Math.abs(dx);
+      if(now-lastT>700){ shakeAcc=0; lastT=now }
+      if(shakeAcc>300){ mareo(); shakeAcc=0 }
+    }
   }
   lastX=e.clientX; lastY=e.clientY;
 });
 mx.addEventListener('pointerup',()=>{
-  dragging=false; clearTimeout(hold); ultimo=Date.now();
+  dragging=false; ultimo=Date.now();
   if(modo==='mover'){ guardarPos() }
-  else if(!modo && Date.now()-t0<300 && moved<8){ const now=Date.now(); taps=taps.filter(x=>now-x<5000); taps.push(now); taps.length>=4?enojarse():piquito() }
+  else if(!modo && Date.now()-t0<300 && moved<8){ const now=Date.now(); taps=taps.filter(x=>now-x<8000); taps.push(now); fastidiar(taps.length) }
   modo=null;
 });
-mx.addEventListener('pointercancel',()=>{dragging=false;clearTimeout(hold);modo=null});
+mx.addEventListener('pointercancel',()=>{dragging=false;modo=null});
 /* Se duerme si nadie la toca por 15 segundos */
 setInterval(()=>{
   if(!mx.classList.contains('in'))return;
-  if(!sleeping && Date.now()-ultimo>15000 && !_tmp){ sleeping=true; pose('sueno') }
+  if(!sleeping && Date.now()-ultimo>6000 && !_tmp){ sleeping=true; pose('sueno') }
 },1000);
 /* Frases al reaccionar a la carta: variadas, con pausa entre ellas */
 const FR={
- elegir:[['','¡Oye~!'],['','Mmm, rico'],['','¡Buena!']],
+ elegir:[['','¡Oye~!'],['','¡Rico!'],['','¡Buena!']],
  quitar:[['','Oye, te estoy viendo']],
- abrir:[['','¡Hola!'],['','Mira~']],
- charla:[['','Oye, ¿me ves?'],['','Aquí estoy~']]
+ abrir:[['','Mira~']],
+ charla:[['','¿Me escuchas?'],['','Hey, ¿me ves?'],['','Aquí estoy~'],['','¿Me acaricias?']]
 };
 let _lastSay=0;
 const elegirFrase=k=>FR[k][Math.floor(Math.random()*FR[k].length)];
 reaccion=function(tipo){
   despertar();
   _reaccion(tipo);
-  if(tipo=='agregar' && Date.now()-_lastSay>4000){ const [j,e]=elegirFrase('elegir'); decir(j,e); _lastSay=Date.now() }
+  if(tipo=='agregar' && Date.now()-_lastSay>12000){ const [j,e]=elegirFrase('elegir'); decir(j,e); _lastSay=Date.now() }
   if(tipo=='quitar' && Date.now()-_lastSay>4000){ const [j,e]=elegirFrase('quitar'); decir(j,e); _lastSay=Date.now() }
-  if(tipo=='abrir' && Date.now()-_lastSay>4000){ const [j,e]=elegirFrase('abrir'); decir(j,e); _lastSay=Date.now() }
+  if(tipo=='abrir' && Date.now()-_lastSay>20000){ const [j,e]=elegirFrase('abrir'); decir(j,e); _lastSay=Date.now() }
   if(tipo=='enviar'){ decir('','¡Gracias!',2600); _lastSay=Date.now() }
 };
 /* Cada 25 segundos, si está despierta, le dice algo para que se sienta cercana */
