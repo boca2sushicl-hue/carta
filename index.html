@@ -82,7 +82,7 @@ footer{text-align:center;color:var(--mute);font-size:12px;padding:16px}
 .seg button.on{background:#3a342e;color:var(--ink);box-shadow:0 2px 8px -2px rgba(0,0,0,.2)}
 .tot{display:flex;justify-content:space-between;align-items:baseline;margin:16px 0 12px}.tot b{font-size:24px;color:var(--red)}
 .fin{text-align:center;padding:10px 0}.fin .mon{margin:0 auto 12px}.fin p{margin:6px 0 16px}.fin .go{margin-bottom:8px}.fin button{padding:10px;color:var(--mute);font-weight:600}
-.mx{cursor:grab;position:fixed;right:8px;bottom:96px;width:160px;height:160px;z-index:28;background:url(mascota_sheet.webp) no-repeat;background-size:1120px 800px;touch-action:none;user-select:none;-webkit-user-select:none;transform:translateX(130%);transition:transform .6s var(--ez);filter:drop-shadow(0 8px 10px rgba(0,0,0,.5))}
+.mx{cursor:grab;position:fixed;right:8px;bottom:96px;width:160px;height:160px;z-index:28;background:url(mascota.webp) no-repeat center/contain;touch-action:none;user-select:none;-webkit-user-select:none;transform:translateX(130%);transition:transform .6s var(--ez),filter .35s;filter:drop-shadow(0 8px 10px rgba(0,0,0,.5))}
 #burbuja{position:fixed;right:10px;bottom:236px;max-width:70vw;background:#fff;color:#2a1f17;padding:8px 12px;border-radius:14px;font-weight:700;font-size:14px;opacity:0;transform:translateY(6px);transition:.25s;z-index:41;pointer-events:none}
 #burbuja.on{opacity:1;transform:none}
 .cor{position:fixed;color:#ff5e8a;font-size:22px;z-index:40;pointer-events:none;animation:subir 1s ease-out forwards}
@@ -468,11 +468,12 @@ function celebrar(){
  ],{duration:700,easing:'ease-out'}));
  navigator.vibrate&&navigator.vibrate([12,40,12]);
 }
-/* Reacciones de la mascota: cada acción cambia su pose y su movimiento */
-const POSES={idle:0,alegre:[10,16,0,30],emocion:[7,17,30],guino:[32,20],saluda:[16,28],moto:[17,30],bolsa:[23,12],sorpresa:[21,2],feliz:[8],risa:[8],puchero:[15],cancelar:[15],triste:[25],sueno:25,abrazo:[14],enojada:[4,33,26],humo:[4,33,26,15]};
+/* Reacciones de la mascota: como ahora es una ilustración única (no un sprite de poses),
+   cada "pose" se traduce en un tinte/ánimo distinto vía filter, + las animaciones de movimiento de abajo */
+const MOODS={idle:'',alegre:'saturate(1.25) brightness(1.05)',emocion:'saturate(1.3) brightness(1.1)',guino:'saturate(1.15)',saluda:'saturate(1.2) brightness(1.05)',moto:'',bolsa:'saturate(1.15)',sorpresa:'brightness(1.25)',feliz:'saturate(1.3) brightness(1.08)',risa:'saturate(1.3) brightness(1.1)',puchero:'saturate(.7) brightness(.92)',cancelar:'saturate(.6) brightness(.9)',triste:'grayscale(.45) brightness(.85)',sueno:'grayscale(.3) brightness(.6)',abrazo:'saturate(1.2)',enojada:'saturate(1.5) hue-rotate(-8deg) brightness(.95)',humo:'grayscale(.5) brightness(.8)'};
 const mx=document.getElementById('mx');
 let _pose=null;
-const pose=p=>{let v=POSES[p]; if(Array.isArray(v)) v=v[Math.floor(Math.random()*v.length)]; const i=v??(typeof p==='number'?p:0); if(_pose===i)return; _pose=i; mx.style.backgroundPosition=`${-(i%7)*160}px ${-Math.floor(i/7)*160}px`};
+const pose=p=>{if(_pose===p)return;_pose=p;const m=MOODS[p]??'';mx.style.filter=`drop-shadow(0 8px 10px rgba(0,0,0,.5))${m?(' '+m):''}`};
 const saltar=()=>mx.animate([{transform:'translateY(0) scale(1.1,.9)'},{transform:'translateY(-30px) scale(.94,1.06)'},{transform:'translateY(0) scale(1.06,.94)'},{transform:'translateY(0)'}],{duration:600,easing:'ease-out'});
 const tropezar=()=>mx.animate([{transform:'rotate(0)'},{transform:'rotate(-14deg) translateY(4px)'},{transform:'rotate(10deg)'},{transform:'rotate(-6deg)'},{transform:'rotate(0)'}],{duration:700});
 const aparecer=()=>mx.classList.add('in');
