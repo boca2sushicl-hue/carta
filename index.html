@@ -82,7 +82,7 @@ footer{text-align:center;color:var(--mute);font-size:12px;padding:16px}
 .seg button.on{background:#3a342e;color:var(--ink);box-shadow:0 2px 8px -2px rgba(0,0,0,.2)}
 .tot{display:flex;justify-content:space-between;align-items:baseline;margin:16px 0 12px}.tot b{font-size:24px;color:var(--red)}
 .fin{text-align:center;padding:10px 0}.fin .mon{margin:0 auto 12px}.fin p{margin:6px 0 16px}.fin .go{margin-bottom:8px}.fin button{padding:10px;color:var(--mute);font-weight:600}
-.mx{position:fixed;right:8px;bottom:96px;width:160px;height:160px;z-index:28;background:url(mascota_sheet.webp) no-repeat;background-size:1120px 800px;touch-action:none;user-select:none;-webkit-user-select:none;transform:translateX(130%);transition:transform .6s var(--ez);filter:drop-shadow(0 8px 10px rgba(0,0,0,.5))}
+.mx{cursor:grab;position:fixed;right:8px;bottom:96px;width:160px;height:160px;z-index:28;background:url(mascota_sheet.webp) no-repeat;background-size:1120px 800px;touch-action:none;user-select:none;-webkit-user-select:none;transform:translateX(130%);transition:transform .6s var(--ez);filter:drop-shadow(0 8px 10px rgba(0,0,0,.5))}
 #burbuja{position:fixed;right:10px;bottom:236px;max-width:70vw;background:#fff;color:#2a1f17;padding:8px 12px;border-radius:14px;font-weight:700;font-size:14px;opacity:0;transform:translateY(6px);transition:.25s;z-index:41;pointer-events:none}
 #burbuja.on{opacity:1;transform:none}
 .cor{position:fixed;color:#ff5e8a;font-size:22px;z-index:40;pointer-events:none;animation:subir 1s ease-out forwards}
@@ -469,10 +469,10 @@ function celebrar(){
  navigator.vibrate&&navigator.vibrate([12,40,12]);
 }
 /* Reacciones de la mascota: cada acción cambia su pose y su movimiento */
-const POSES={idle:0,alegre:10,emocion:7,guino:32,saluda:16,moto:17,bolsa:23,sorpresa:21,feliz:6,risa:8,puchero:9,sueno:25,abrazo:14,enojada:26};
+const POSES={idle:0,alegre:[10,16,0,5],emocion:[7,17,30],guino:[32,20,10],saluda:[16,28,34],moto:[17,7,30],bolsa:[23,12,28],sorpresa:[21,2,30],feliz:[8],risa:[8],puchero:[9,15,13],cancelar:[15],sueno:25,abrazo:[14,24],enojada:[26,9,15],humo:[26,15,9]};
 const mx=document.getElementById('mx');
 let _pose=null;
-const pose=p=>{const i=POSES[p]??0; if(_pose===i)return; _pose=i; mx.style.backgroundPosition=`${-(i%7)*160}px ${-Math.floor(i/7)*160}px`};
+const pose=p=>{let v=POSES[p]; if(Array.isArray(v)) v=v[Math.floor(Math.random()*v.length)]; const i=v??(typeof p==='number'?p:0); if(_pose===i)return; _pose=i; mx.style.backgroundPosition=`${-(i%7)*160}px ${-Math.floor(i/7)*160}px`};
 const saltar=()=>mx.animate([{transform:'translateY(0) scale(1.1,.9)'},{transform:'translateY(-30px) scale(.94,1.06)'},{transform:'translateY(0) scale(1.06,.94)'},{transform:'translateY(0)'}],{duration:600,easing:'ease-out'});
 const tropezar=()=>mx.animate([{transform:'rotate(0)'},{transform:'rotate(-14deg) translateY(4px)'},{transform:'rotate(10deg)'},{transform:'rotate(-6deg)'},{transform:'rotate(0)'}],{duration:700});
 const aparecer=()=>mx.classList.add('in');
@@ -483,9 +483,9 @@ function temp(p,ms=2000){pose(p);clearTimeout(_tmp);_tmp=setTimeout(()=>{pose('i
 setInterval(()=>{if(!mx.classList.contains('in')||_tmp||sleeping)return;const g=['guino','saluda','idle'];temp(g[Math.floor(Math.random()*g.length)],1600)},6000);
 function reaccion(tipo){
  if(tipo=='agregar'){aparecer();temp(cnt()>=3?'moto':'alegre');saltar();navigator.vibrate&&navigator.vibrate(10)}
- if(tipo=='quitar'){aparecer();temp('guino');tropezar()}
+ if(tipo=='quitar'){aparecer();temp('cancelar',2200);tropezar()}
  if(tipo=='abrir'){aparecer();temp('saluda');mx.animate([{transform:'rotate(0)'},{transform:'rotate(-7deg)'},{transform:'rotate(0)'}],{duration:500})}
- if(tipo=='vacio'){mx.classList.remove('in');pose('idle')}
+ if(tipo=='vacio'){temp('cancelar',1800);setTimeout(()=>mx.classList.remove('in'),1800)}
  if(tipo=='enviar'){aparecer();temp('bolsa');saltar()}
 }
 
@@ -524,34 +524,44 @@ function corazon(){
   h.style.left=(r.left+r.width*(.3+Math.random()*.4))+'px'; h.style.top=(r.top+r.height*.1)+'px';
   document.body.appendChild(h); setTimeout(()=>h.remove(),1100);
 }
-function despertar(){ ultimo=Date.now(); if(sleeping){sleeping=false; temp('sorpresa',1000); decir('ふぁ…？','¡Ah! Me despertaste')} }
-function caricia(){ if(Date.now()-_cari<350)return; _cari=Date.now(); temp('feliz',1400); corazon(); decir('','¡Ehehe!',1200,{base:900,v:0.5}) }
-function piquito(){ temp('sorpresa',1200); decir('なに？','¿Mmm? ¿Qué pasa?') }
-function enojarse(){ temp('enojada',2600); tropezar(); decir('','¡Ya! ¡Basta!',2200,{base:170,v:0.4}); taps=[] }
-function cosquillas(){ temp('risa',2000); mx.animate([{transform:'translateX(-5px)'},{transform:'translateX(5px)'}].concat([{transform:'translateX(-5px)'},{transform:'translateX(5px)'}],[{transform:'translateX(-5px)'},{transform:'translateX(5px)'}],[{transform:'translateX(0)'}]),{duration:700}); decir('','¡Me hace cosquillas!',1800,{base:1000,v:0.5}) }
-function mareo(){ temp('humo',1800); tropezar(); decir('もうやめて！','¡Ya basta!') }
+function despertar(){ ultimo=Date.now(); if(sleeping){sleeping=false; temp('sorpresa',1000); decir('','¿Eh?',1000)} }
+function caricia(){ if(Date.now()-_cari<350)return; _cari=Date.now(); temp('feliz',1400); corazon(); decir('','¡Jiji~!',1200,{base:1100,v:0.4}) }
+function piquito(){ temp('sorpresa',1200); decir('','¿Mmm?',1000) }
+function enojarse(){ temp('enojada',2600); tropezar(); decir('','¡Basta!',2200,{base:170,v:0.4}); taps=[] }
+function cosquillas(){ temp('risa',2000); mx.animate([{transform:'translateX(-5px)'},{transform:'translateX(5px)'}].concat([{transform:'translateX(-5px)'},{transform:'translateX(5px)'}],[{transform:'translateX(-5px)'},{transform:'translateX(5px)'}],[{transform:'translateX(0)'}]),{duration:700}); decir('','¡Jajaja!',1800,{base:1000,v:0.5}) }
+function mareo(){ temp('humo',1800); tropezar(); decir('','¡Ay!',1400) }
+let startRel=0, modo=null, offX=0, offY=0;
+function moverA(x,y){ const w=mx.offsetWidth,h=mx.offsetHeight; x=Math.max(0,Math.min(innerWidth-w,x)); y=Math.max(0,Math.min(innerHeight-h,y)); mx.style.left=x+'px'; mx.style.top=y+'px'; mx.style.right='auto'; mx.style.bottom='auto' }
+function guardarPos(){ try{localStorage.setItem('mxpos',JSON.stringify({x:parseFloat(mx.style.left),y:parseFloat(mx.style.top)}))}catch(e){} }
+try{const p=JSON.parse(localStorage.getItem('mxpos')); if(p&&p.x!=null) moverA(p.x,p.y)}catch(e){}
 mx.addEventListener('pointerdown',e=>{
-  despertar(); t0=Date.now(); lastX=e.clientX; lastY=e.clientY; moved=0; shakeAcc=0; lastT=Date.now();
-  clearTimeout(hold); hold=setTimeout(()=>{ if(moved<12){ cosquillas(); hold=null } },900);
-  dragging=true; mx.setPointerCapture(e.pointerId);
+  despertar(); t0=Date.now(); lastX=e.clientX; lastY=e.clientY; moved=0; shakeAcc=0; lastT=Date.now(); modo=null;
+  const r=mx.getBoundingClientRect(); startRel=(e.clientY-r.top)/r.height; offX=e.clientX-r.left; offY=e.clientY-r.top;
+  dragging=true; clearTimeout(hold);
+  hold=setTimeout(()=>{ if(!modo && moved<12){ cosquillas(); hold=null } },900);
+  mx.setPointerCapture(e.pointerId);
 });
 mx.addEventListener('pointermove',e=>{
-  if(!dragging)return;
-  ultimo=Date.now();
+  if(!dragging)return; ultimo=Date.now();
   const dx=e.clientX-lastX, dy=e.clientY-lastY, now=Date.now();
   moved+=Math.hypot(dx,dy);
-  const r=mx.getBoundingClientRect(), enCabeza=(e.clientY-r.top)<r.height*.45;
-  if(Math.abs(dx)>4 && moved>18) caricia();
-  if(Math.abs(dx)>Math.abs(dy)) shakeAcc+=Math.abs(dx);
-  if(now-lastT>700){ shakeAcc=0; lastT=now }
-  if(shakeAcc>300){ mareo(); shakeAcc=0 }
+  if(!modo && moved>12) modo = startRel<0.45 ? 'caricia' : 'mover';
+  if(modo==='mover'){ clearTimeout(hold); moverA(e.clientX-offX, e.clientY-offY) }
+  if(modo==='caricia'){
+    if(Math.abs(dx)>4) caricia();
+    if(Math.abs(dx)>Math.abs(dy)) shakeAcc+=Math.abs(dx);
+    if(now-lastT>700){ shakeAcc=0; lastT=now }
+    if(shakeAcc>300){ mareo(); shakeAcc=0 }
+  }
   lastX=e.clientX; lastY=e.clientY;
 });
 mx.addEventListener('pointerup',()=>{
   dragging=false; clearTimeout(hold); ultimo=Date.now();
-  if(Date.now()-t0<300 && moved<8){ const now=Date.now(); taps=taps.filter(x=>now-x<5000); taps.push(now); taps.length>=4?enojarse():piquito() }
+  if(modo==='mover'){ guardarPos() }
+  else if(!modo && Date.now()-t0<300 && moved<8){ const now=Date.now(); taps=taps.filter(x=>now-x<5000); taps.push(now); taps.length>=4?enojarse():piquito() }
+  modo=null;
 });
-mx.addEventListener('pointercancel',()=>{dragging=false;clearTimeout(hold)});
+mx.addEventListener('pointercancel',()=>{dragging=false;clearTimeout(hold);modo=null});
 /* Se duerme si nadie la toca por 15 segundos */
 setInterval(()=>{
   if(!mx.classList.contains('in'))return;
@@ -559,10 +569,10 @@ setInterval(()=>{
 },1000);
 /* Frases al reaccionar a la carta: variadas, con pausa entre ellas */
 const FR={
- elegir:[['えらぶ？','¿Cuál elegirás?'],['いいね！','¡Buena elección!'],['おいしそう','¡Se ve rico!'],['ねえ、みてる？','Oye, te estoy viendo'],['もうちょっと？','¿Algo más?']],
- quitar:[['えっ？','¿Ah? ¿Lo quitamos?'],['まって！','¡Espera!']],
- abrir:[['みて みて！','¡Mira, mira!'],['いらっしゃい','¡Bienvenido!'],['ここだよ〜','Aquí estoy~']],
- charla:[['ねえ、みてる？','Oye, te estoy viendo'],['ここだよ〜','Aquí estoy~'],['みて みて！','¡Mira, mira!'],['どれにする？','¿Cuál quieres?']]
+ elegir:[['','¡Oye~!'],['','Mmm, rico'],['','¡Buena!']],
+ quitar:[['','Oye, te estoy viendo']],
+ abrir:[['','¡Hola!'],['','Mira~']],
+ charla:[['','Oye, ¿me ves?'],['','Aquí estoy~']]
 };
 let _lastSay=0;
 const elegirFrase=k=>FR[k][Math.floor(Math.random()*FR[k].length)];
@@ -572,7 +582,7 @@ reaccion=function(tipo){
   if(tipo=='agregar' && Date.now()-_lastSay>4000){ const [j,e]=elegirFrase('elegir'); decir(j,e); _lastSay=Date.now() }
   if(tipo=='quitar' && Date.now()-_lastSay>4000){ const [j,e]=elegirFrase('quitar'); decir(j,e); _lastSay=Date.now() }
   if(tipo=='abrir' && Date.now()-_lastSay>4000){ const [j,e]=elegirFrase('abrir'); decir(j,e); _lastSay=Date.now() }
-  if(tipo=='enviar'){ decir('ありがとう！','¡Gracias por tu pedido!',2600); _lastSay=Date.now() }
+  if(tipo=='enviar'){ decir('','¡Gracias!',2600); _lastSay=Date.now() }
 };
 /* Cada 25 segundos, si está despierta, le dice algo para que se sienta cercana */
 setInterval(()=>{
