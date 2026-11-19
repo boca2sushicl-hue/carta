@@ -583,9 +583,10 @@ function enojarse(){ temp('enojada',2600); tropezar(); decir('','¡Basta!',2200,
 let _fall=null;
 function cosquillas(){
   temp('risa',3800);
-  _fall=mx.animate([{transform:'translateY(0) rotate(0)'},{transform:'translateY(20px) rotate(-35deg)'},{transform:'translateY(45px) rotate(-80deg)'}],{duration:700,fill:'forwards',easing:'ease-in'});
   decir('','¡Basta! ¡Jajaja!',3000,{risa:true,n:10,base:820});
-  setTimeout(()=>{ if(_fall){ _fall.cancel(); _fall=null } mx.animate([{transform:'translateY(45px) rotate(-80deg)'},{transform:'translateY(0) rotate(0)'}],{duration:600}) },3300);
+  clearInterval(_fall);
+  _fall=setInterval(()=>mx.animate([{transform:'rotate(0) scale(1,1)'},{transform:'rotate(-9deg) scale(1.05,.95)'},{transform:'rotate(7deg) scale(.96,1.04)'},{transform:'rotate(0) scale(1,1)'}],{duration:260,easing:'ease-in-out'}),260);
+  setTimeout(()=>{ clearInterval(_fall); _fall=null }, 3300);
 }
 function mareo(){ temp('humo',1800); tropezar(); decir('','¡Ay!',1400) }
 let startRel=0, modo=null, offX=0, offY=0, signChanges=[], lastSign=0, _cosq=0;
