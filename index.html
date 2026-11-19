@@ -469,7 +469,7 @@ function celebrar(){
  navigator.vibrate&&navigator.vibrate([12,40,12]);
 }
 /* Reacciones de la mascota: cada acción cambia su pose y su movimiento */
-const POSES={idle:0,alegre:[10,16],emocion:[7,17],guino:[32,20],saluda:[16,28],moto:[17,30],bolsa:[23,12],sorpresa:[21,2],feliz:[8],risa:[8],puchero:[15],cancelar:[15],sueno:25,abrazo:[14],enojada:[26],humo:[26,15]};
+const POSES={idle:0,alegre:[10,16,0,30],emocion:[7,17,30],guino:[32,20],saluda:[16,28],moto:[17,30],bolsa:[23,12],sorpresa:[21,2],feliz:[8],risa:[8],puchero:[15],cancelar:[15],triste:[25],sueno:25,abrazo:[14],enojada:[4,33,26],humo:[4,33,26,15]};
 const mx=document.getElementById('mx');
 let _pose=null;
 const pose=p=>{let v=POSES[p]; if(Array.isArray(v)) v=v[Math.floor(Math.random()*v.length)]; const i=v??(typeof p==='number'?p:0); if(_pose===i)return; _pose=i; mx.style.backgroundPosition=`${-(i%7)*160}px ${-Math.floor(i/7)*160}px`};
@@ -483,7 +483,7 @@ function temp(p,ms=2000){pose(p);clearTimeout(_tmp);_tmp=setTimeout(()=>{pose('i
 setInterval(()=>{if(!mx.classList.contains('in')||_tmp||sleeping)return;const g=['guino','saluda','idle'];temp(g[Math.floor(Math.random()*g.length)],1600)},6000);
 function reaccion(tipo){
  if(tipo=='agregar'){aparecer();temp(cnt()>=3?'moto':'alegre');saltar();navigator.vibrate&&navigator.vibrate(10)}
- if(tipo=='quitar'){aparecer();temp('cancelar',2200);tropezar()}
+ if(tipo=='quitar'){aparecer();temp('triste',2200);mx.animate([{transform:'translateY(0)'},{transform:'translateY(14px) scale(.96,.92)'},{transform:'translateY(6px) scale(.98)'}],{duration:700,fill:'none'})}
  if(tipo=='abrir'){aparecer();temp('saluda');mx.animate([{transform:'rotate(0)'},{transform:'rotate(-7deg)'},{transform:'rotate(0)'}],{duration:500})}
  if(tipo=='vacio'){temp('cancelar',1800);setTimeout(()=>mx.classList.remove('in'),1800)}
  if(tipo=='enviar'){aparecer();temp('bolsa');saltar()}
@@ -535,10 +535,20 @@ function babble(ms=1000,tono={base:600,v:1}){
   setTimeout(()=>clearInterval(id),ms);
 }
 /* Texto de expresión en español; sin voz en japonés */
+/* Voz en español del celular para frases cortas (más natural que los tonos) */
+function hablar(es){
+  try{
+    const txt=es.replace(/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}♥]/gu,'').trim(); if(!txt)return;
+    const u=new SpeechSynthesisUtterance(txt); const vs=speechSynthesis.getVoices();
+    const v=vs.find(x=>/^es/i.test(x.lang)&&/female|mujer|google/i.test(x.name))||vs.find(x=>/^es/i.test(x.lang));
+    if(v) u.voice=v; u.lang='es-MX'; u.pitch=1.5; u.rate=1.1; speechSynthesis.cancel(); speechSynthesis.speak(u);
+  }catch(e){}
+}
+function hablarAnim(ms){ const id=setInterval(()=>mx.animate([{transform:'scale(1,1)'},{transform:'scale(1.04,.96)'},{transform:'scale(1,1)'}],{duration:200}),230); setTimeout(()=>clearInterval(id),ms) }
 function decir(jp,es,ms=1600,tono){
   burbuja.textContent=es; posBurbuja(); burbuja.classList.add('on');
   clearTimeout(decir._t); decir._t=setTimeout(()=>burbuja.classList.remove('on'),ms);
-  if(tono&&tono.risa) risa(tono.n,tono.base); else babble(Math.min(ms,1200),tono||{base:600,v:1});
+  if(tono&&tono.risa) risa(tono.n,tono.base); else if(es){ hablar(es); hablarAnim(Math.min(ms,1400)) } else babble(Math.min(ms,1200),tono||{base:600,v:1});
 }
 function corazon(){
   const h=document.createElement('span'); h.className='cor'; h.textContent='♥';
